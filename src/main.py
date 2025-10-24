@@ -10,6 +10,18 @@ from langchain_core.messages import ToolMessage
 # Load environment variables
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
 
+# Basic tools
+@tool
+def now_date_time() -> str:
+    """Get the current date and time."""
+    from datetime import datetime
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+@tool
+def quit_conversation():
+    """Quit the conversation."""
+    exit("Conversation ended by Agent.")
+
 # Middleware to handle tool errors
 @wrap_tool_call
 def handle_tool_errors(request, handler):
@@ -141,9 +153,6 @@ def tree(dir_path: str) -> str:
 # Main function
 def main():
 
-    # Initialize chat history
-    # chat_history = []
-
     # Initialize the language model
     model = ChatOpenAI(
         model = os.getenv("DEFAULT_MODEL"),
@@ -153,6 +162,9 @@ def main():
     # Create the agent with git tools
     git_agent = create_agent(
         tools = [
+            # Basic tools
+            now_date_time,
+            quit_conversation,
             # Git tools
             git_init,
             git_status,
@@ -180,7 +192,7 @@ def main():
     chat_history = [
         {
             "role": "system", 
-            "content": '''你是一个git助手,用于帮助用户执行git命令. 请在执行命令之后用中文说明你做了什么.'''
+            "content": os.getenv("SYSTEM_PROMPT")
         }
     ]
 
@@ -196,10 +208,6 @@ def main():
         print("")
         user_prompt = input(">> ")
         print("")
-
-        # Quit condition
-        if user_prompt.lower() == 'exit':
-            break
 
         # Append user message to chat history
         chat_history.append({"role": "user", "content": user_prompt})
@@ -217,6 +225,7 @@ def main():
             if chunk.content:
                 print(chunk.content, end = "", flush = True)
                 model_response = model_response + chunk.content
+            
 
 if __name__ == "__main__":
     main()
