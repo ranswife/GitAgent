@@ -148,7 +148,8 @@ def tree(dir_path: str) -> str:
         subindent = ' ' * 4 * (level + 1)
         for f in files:
             structure.append(f"{subindent}{f}")
-    return '\n'.join(structure)
+    result = '\n'.join(structure)
+    return result
 
 # Main function
 def main():
