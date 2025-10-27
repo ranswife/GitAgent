@@ -6,6 +6,7 @@ from langchain.tools import tool
 from langchain_openai import ChatOpenAI
 from langchain.agents.middleware import wrap_tool_call
 from langchain_core.messages import ToolMessage
+from langchain.agents.middleware import HumanInTheLoopMiddleware
 
 # Load environment variables
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
@@ -16,7 +17,8 @@ def now_date_time() -> str:
     """Get the current date and time."""
     from datetime import datetime
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    
+
+# Ask agent to quit conversation
 @tool
 def quit_conversation():
     """Quit the conversation."""
@@ -36,6 +38,7 @@ def handle_tool_errors(request, handler):
         )
 
 # Git tools
+@tool
 def git_init(dir: str) -> str:
     """Initialize a new Git repository."""
     repo = git.Repo.init(dir)
@@ -148,7 +151,8 @@ def tree(dir_path: str) -> str:
         subindent = ' ' * 4 * (level + 1)
         for f in files:
             structure.append(f"{subindent}{f}")
-    return '\n'.join(structure)
+    result = '\n'.join(structure)
+    return result
 
 # Main function
 def main():
@@ -185,7 +189,9 @@ def main():
             tree,
         ],
         model = model,
-        middleware = [handle_tool_errors]
+        middleware = [
+            handle_tool_errors,
+        ]
     )
 
     # Chat history
@@ -195,6 +201,11 @@ def main():
             "content": os.getenv("SYSTEM_PROMPT")
         }
     ]
+
+    # Cut chat history, only keep 5 chat history
+    if len(chat_history) >= 11:
+        del chat_history[1]
+        del chat_history[2]
 
     # Interactive loop
     print("Welcome to the Git Agent! Type your commands below.")
